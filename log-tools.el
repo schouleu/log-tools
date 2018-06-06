@@ -142,6 +142,10 @@ length is larger than this value it won't be propertized."
       (let ((inhibit-read-only t))
 	(light-save-excursion-if-not-at-point-max buf
 	  (goto-char (point-max))
+          (when (equal (string-to-char string) ?\r)
+            (goto-char (line-beginning-position))
+            (delete-region (point) (line-end-position))
+            (setq string (substring string 1 nil)))
 	  (when (= (point) (line-beginning-position))
 	    (lt-insert-current-date-string))
 	  (light-save-excursion
