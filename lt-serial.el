@@ -53,11 +53,14 @@
 (defvar-local lt-serial-real-port nil)
 (defvar-local lt-serial-port nil)
 (defvar-local lt-serial-speed nil)
-(defvar-local lt-serial-clean-regexp '("[\x]" "\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?"))
+(defvar-local lt-serial-clean-regexp '("[\r\x]" "\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?"))
 
 (defun lt-serial-filter (buffer proc string)
-  (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
-  (lt-insert-string-in-log-buffer buffer string))
+  (let ((first-char (substring string 0 1)))
+    (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
+    (when (equal first-char "\r")
+      (setq string (concat first-char string)))
+    (lt-insert-string-in-log-buffer buffer string)))
 
 (defun lt-serial-bind-controlkeys ()
   (dolist (key2value lt-serial-controlkeys)
