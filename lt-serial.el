@@ -53,13 +53,13 @@
 (defvar-local lt-serial-real-port nil)
 (defvar-local lt-serial-port nil)
 (defvar-local lt-serial-speed nil)
-(defvar-local lt-serial-clean-regexp '("[\r\x]" "\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?"))
+(defvar-local lt-serial-clean-regexp '("\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?"))
 
 (defun lt-serial-filter (buffer proc string)
+  (setq string (replace-regexp-in-string "^[^\n]*\r" "\r" string))
+  (setq string (replace-regexp-in-string "\n[^\n]*\r" "\n" string))
   (let ((first-char (substring string 0 1)))
     (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
-    (when (equal first-char "\r")
-      (setq string (concat first-char string)))
     (lt-insert-string-in-log-buffer buffer string)))
 
 (defun lt-serial-bind-controlkeys ()
@@ -110,8 +110,9 @@
 
 
 (defun lt-serial-init (&optional serial-port serial-speed)
-  (interactive (list (read-file-name "Serial port: " "/dev" lt-serial-default-port t)
-		     (read-number "Serial speed: " lt-serial-default-speed)))
+  (interactive (list (ido-read-file-name "Serial port: " "/dev" lt-serial-default-port t)
+		     (string-to-number (read-string "Serial speed: " nil 'lt-serial-speed-history
+				  lt-serial-default-speed))))
   (setq lt-serial-port serial-port
 	lt-serial-real-port serial-port
 	lt-serial-speed serial-speed)
