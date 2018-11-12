@@ -111,7 +111,7 @@
 
 (defun lt-serial-init (&optional serial-port serial-speed)
   (interactive (list (ido-read-file-name "Serial port: " "/dev" lt-serial-default-port t)
-		     (string-to-number (read-string "Serial speed: " nil 'lt-serial-speed-history
+		     (string-to-number (read-string "Serial speed: " "115200" 'lt-serial-speed-history
 				  lt-serial-default-speed))))
   (setq lt-serial-port serial-port
 	lt-serial-real-port serial-port
