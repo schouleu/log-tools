@@ -56,6 +56,7 @@
 (defvar-local lt-serial-clean-regexp '("\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?"))
 
 (defun lt-serial-filter (buffer proc string)
+  (setq string (replace-regexp-in-string "\r\n" "\n" string))
   (setq string (replace-regexp-in-string "^[^\n]*\r" "\r" string))
   (setq string (replace-regexp-in-string "\n[^\n]*\r" "\n" string))
   (let ((first-char (substring string 0 1)))
