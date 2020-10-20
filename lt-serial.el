@@ -45,7 +45,7 @@
   "Control keys to manipulate serial term."
   :group 'lt-serial)
 
-(defcustom lt-serial-socat-port 5900
+(defcustom lt-serial-socat-port 9000
   "TCP port to use with socat."
   :group 'lt-serial)
 
@@ -86,7 +86,8 @@
 		     (format "TCP:%s:%d,retry=3" remote-host lt-serial-socat-port))
       (add-to-list 'lt-serial-socat-buffers buf)
       (sleep-for 1)		; Give time to socat to create the file
-      (setq lt-serial-real-port tmp))))
+      (setq lt-serial-real-port tmp))
+    (incf lt-serial-socat-port)))
 
 (defun lt-serial-clear-buffer ()
   (dolist (buf lt-serial-socat-buffers)
