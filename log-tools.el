@@ -136,6 +136,15 @@ length is larger than this value it won't be propertized."
   (insert (propertize (format-time-string lt-time-fmt (current-time))
 		      'face 'font-lock-comment-face)))
 
+(defsubst lt-update-current-date-string ()
+  (save-excursion
+    (let ((time-string (format-time-string lt-time-fmt (current-time))))
+      (goto-char (line-beginning-position))
+      (kill-forward-chars (min (- (point-max) (point)) (length time-string)))
+      (insert (propertize time-string
+		          'face 'font-lock-comment-face))
+      (point))))
+
 (defun lt-insert-string-in-log-buffer (buf string)
   (when (and (> (length string) 0) (get-buffer buf))
     (with-current-buffer buf
@@ -143,9 +152,22 @@ length is larger than this value it won't be propertized."
 	(light-save-excursion-if-not-at-point-max buf
 	  (goto-char (point-max))
           (when (equal (string-to-char string) ?\r)
-            (goto-char (line-beginning-position))
-            (delete-region (point) (line-end-position))
-            (setq string (substring string 1 nil)))
+                (setq string (substring string 1 nil))
+                (setq carriage-return (lt-update-current-date-string)))
+          (when carriage-return
+            (let* ((to-consume (s-index-of "\n" string))
+                   (first-part (substring string 0 to-consume)))
+              (goto-char carriage-return)
+              (kill-forward-chars (min (- (point-max) carriage-return) (length first-part)))
+              (insert first-part)
+              (if to-consume
+                  (progn
+                    (setq string (substring string to-consume))
+                    (setq carriage-return nil)
+                    (goto-char (point-max)))
+                (progn
+                  (setq string "")
+                  (setq carriage-return (point))))))
 	  (when (= (point) (line-beginning-position))
 	    (lt-insert-current-date-string))
 	  (light-save-excursion
@@ -274,6 +296,7 @@ length is larger than this value it won't be propertized."
   (let ((backend (find backend-name lt-backends :key 'lt-backend-name :test 'string=)))
     (with-current-buffer (get-buffer-create (format lt-buf-fmt backend-name))
       (lt-mode)
+      (setq-local carriage-return nil)
       (setq lt-backend backend-name)
       (call-interactively (lt-backend-init backend))
       (pop-to-buffer-same-window (current-buffer)))))

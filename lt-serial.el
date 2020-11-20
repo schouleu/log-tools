@@ -56,12 +56,9 @@
 (defvar-local lt-serial-clean-regexp '("\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?m?"))
 
 (defun lt-serial-filter (buffer proc string)
-  (setq string (replace-regexp-in-string "\r\n" "\n" string))
-  (setq string (replace-regexp-in-string "^[^\n]*\r" "\r" string))
-  (setq string (replace-regexp-in-string "\n[^\n]*\r" "\n" string))
   (let ((first-char (substring string 0 1)))
     (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
-    (lt-insert-string-in-log-buffer buffer string)))
+    (mapc (curry 'lt-insert-string-in-log-buffer buffer) (s-slice-at "\r" string))))
 
 (defun lt-serial-bind-controlkeys ()
   (dolist (key2value lt-serial-controlkeys)
@@ -108,6 +105,7 @@
     (make-serial-process :port lt-serial-real-port
 			 :buffer (current-buffer)
 			 :speed lt-serial-speed
+			 :coding 'no-conversion
 			 :filter (curry 'lt-serial-filter (current-buffer)))))
 
 
