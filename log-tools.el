@@ -153,13 +153,18 @@ length is larger than this value it won't be propertized."
 	  (goto-char (point-max))
           (when (equal (string-to-char string) ?\r)
                 (setq string (substring string 1 nil))
-                (setq carriage-return (lt-update-current-date-string)))
+                (setq carriage-return (min (point-max)
+                                           (+
+                                            (line-beginning-position)
+                                            (length (format-time-string lt-time-fmt (current-time)))))))
           (when carriage-return
             (let* ((to-consume (s-index-of "\n" string))
                    (first-part (substring string 0 to-consume)))
               (goto-char carriage-return)
               (kill-forward-chars (min (- (point-max) carriage-return) (length first-part)))
               (insert first-part)
+              (when (and (> (length string) 0) (not (equal to-consume 0)))
+                (lt-update-current-date-string))
               (if to-consume
                   (progn
                     (setq string (substring string to-consume))
