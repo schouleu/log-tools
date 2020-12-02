@@ -152,6 +152,8 @@ length is larger than this value it won't be propertized."
 	(light-save-excursion-if-not-at-point-max buf
 	  (goto-char (point-max))
           (when (equal (string-to-char string) ?\r)
+	    (when (= (point) (line-beginning-position))
+	      (lt-insert-current-date-string))
                 (setq string (substring string 1 nil))
                 (setq carriage-return (min (point-max)
                                            (+
