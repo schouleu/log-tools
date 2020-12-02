@@ -56,9 +56,8 @@
 (defvar-local lt-serial-clean-regexp '("\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?m?"))
 
 (defun lt-serial-filter (buffer proc string)
-  (let ((first-char (substring string 0 1)))
-    (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
-    (mapc (curry 'lt-insert-string-in-log-buffer buffer) (s-slice-at "\r" string))))
+  (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
+  (mapc (curry 'lt-insert-string-in-log-buffer buffer) (mapcan (lambda(x)(s-slice-at "\n" x)) (s-slice-at "\r" string))))
 
 (defun lt-serial-bind-controlkeys ()
   (dolist (key2value lt-serial-controlkeys)
