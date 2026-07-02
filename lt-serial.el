@@ -45,7 +45,7 @@
   "Control keys to manipulate serial term."
   :group 'lt-serial)
 
-(defcustom lt-serial-socat-port 9000
+(defcustom lt-serial-socat-port 9510
   "TCP port to use with socat."
   :group 'lt-serial)
 
@@ -56,8 +56,10 @@
 (defvar-local lt-serial-clean-regexp '("\e\\[[0-9]*m" "\e\\[[0-9]+;[0-9]+H?l?m?"))
 
 (defun lt-serial-filter (buffer proc string)
+  (setq string (replace-regexp-in-string "\e\\[13C" "             " string))
   (mapc (lambda (x) (setq string (replace-regexp-in-string x "" string))) lt-serial-clean-regexp)
-  (mapc (curry 'lt-insert-string-in-log-buffer buffer) (mapcan (lambda(x)(s-slice-at "\n" x)) (s-slice-at "\r" string))))
+  (lt-insert-string-in-log-buffer buffer string))
+;;  (mapc (curry 'lt-insert-string-in-log-buffer buffer) (mapcan (lambda(x)(s-slice-at "\n" x)) (s-slice-at "\r" string))))
 
 (defun lt-serial-bind-controlkeys ()
   (dolist (key2value lt-serial-controlkeys)
@@ -107,6 +109,10 @@
 			 :coding 'no-conversion
 			 :filter (curry 'lt-serial-filter (current-buffer)))))
 
+(defun lt-serial-disconnect ()
+  (lt-serial-clear-buffer))
+  ;; (when (get-buffer-process (current-buffer))
+  ;;   (kill-process (get-buffer-process (current-buffer)))))
 
 (defun lt-serial-init (&optional serial-port serial-speed)
   (interactive (list (ido-read-file-name "Serial port: " "/dev" lt-serial-default-port t)
@@ -121,7 +127,8 @@
 
 (lt-register-backend (make-lt-backend :name "serial"
 				      :init 'lt-serial-init
-				      :restart 'lt-serial-start-process))
+				      :restart 'lt-serial-start-process
+				      :disconnect 'lt-serial-disconnect))
 
 (add-hook 'kill-buffer-hook 'lt-serial-clear-buffer)
 

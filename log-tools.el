@@ -22,6 +22,7 @@
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
 (require 'cl)
+(require 's)
 
 (defgroup log-tools nil
   "Log tools group."
@@ -34,7 +35,7 @@
 log line."
   :group 'log-tools)
 
-(defcustom lt-max-line-nb 100000
+(defcustom lt-max-line-nb 1000000
   "Maximum number of line of the log buffer."
   :group 'log-tools)
 
@@ -140,7 +141,7 @@ length is larger than this value it won't be propertized."
   (save-excursion
     (let ((time-string (format-time-string lt-time-fmt (current-time))))
       (goto-char (line-beginning-position))
-      (kill-forward-chars (min (- (point-max) (point)) (length time-string)))
+      (delete-region (point) (+ (point) (min (- (point-max) (point)) (length time-string))))
       (insert (propertize time-string
 		          'face 'font-lock-comment-face))
       (point))))
@@ -150,36 +151,44 @@ length is larger than this value it won't be propertized."
     (with-current-buffer buf
       (let ((inhibit-read-only t))
 	(light-save-excursion-if-not-at-point-max buf
-	  (goto-char (point-max))
-          (when (equal (string-to-char string) ?\r)
-	    (when (= (point) (line-beginning-position))
-	      (lt-insert-current-date-string))
-                (setq string (substring string 1 nil))
+          (while (> (length string) 0)
+            (let* ((idx-n (s-index-of "\n" (substring string 1)))
+                   (idx-r (s-index-of "\r" (substring string 1)))
+                   (idx-n (and idx-n (+ 1 idx-n)))
+                   (idx-r (and idx-r (+ 1 idx-r)))
+                   (idx (or (and idx-n idx-r (min idx-n idx-r)) idx-n idx-r))
+                   (sub (substring string 0 idx)))
+	      (goto-char (point-max))
+              (setq string (and idx (substring string idx)))
+              (when (equal (string-to-char sub) ?\r)
+	        (when (= (point) (line-beginning-position))
+	          (lt-insert-current-date-string))
+                (setq sub (substring sub 1 nil))
                 (setq carriage-return (min (point-max)
                                            (+
                                             (line-beginning-position)
                                             (length (format-time-string lt-time-fmt (current-time)))))))
-          (when carriage-return
-            (let* ((to-consume (s-index-of "\n" string))
-                   (first-part (substring string 0 to-consume)))
-              (goto-char carriage-return)
-              (kill-forward-chars (min (- (point-max) carriage-return) (length first-part)))
-              (insert first-part)
-              (when (and (> (length string) 0) (not (equal to-consume 0)))
-                (lt-update-current-date-string))
-              (if to-consume
-                  (progn
-                    (setq string (substring string to-consume))
-                    (setq carriage-return nil)
-                    (goto-char (point-max)))
-                (progn
-                  (setq string "")
-                  (setq carriage-return (point))))))
-	  (when (= (point) (line-beginning-position))
-	    (lt-insert-current-date-string))
-	  (light-save-excursion
-	    (insert (lt-add-time-prefix string)))
-	  (lt-propertize-lines))
+              (when carriage-return
+                (let* ((to-consume (s-index-of "\n" sub))
+                       (first-part (substring sub 0 to-consume)))
+                  (goto-char carriage-return)
+                  (delete-region (point) (+ (point) (min (- (point-max) carriage-return) (length first-part))))
+                  (insert first-part)
+                  (when (and (> (length sub) 0) (not (equal to-consume 0)))
+                    (lt-update-current-date-string))
+                  (if to-consume
+                      (progn
+                        (setq sub (substring sub to-consume))
+                        (setq carriage-return nil)
+                        (goto-char (point-max)))
+                    (progn
+                      (setq sub "")
+                      (setq carriage-return (point))))))
+	      (when (= (point) (line-beginning-position))
+	        (lt-insert-current-date-string))
+	      (light-save-excursion
+	          (insert (lt-add-time-prefix sub)))
+	      (lt-propertize-lines))))
 	(lt-buffer-auto-shrink)))))
 
 (defun lt-propertize-line ()
@@ -273,6 +282,11 @@ length is larger than this value it won't be propertized."
   (let ((backend (find lt-backend lt-backends :key 'lt-backend-name :test 'string=)))
     (funcall (lt-backend-restart backend))))
 
+(defun lt-disconnect ()
+  (interactive)
+  (let ((backend (find lt-backend lt-backends :key 'lt-backend-name :test 'string=)))
+    (funcall (lt-backend-disconnect backend))))
+
 (defun lt-quit ()
   (interactive)
   (when (or (get-buffer-process (current-buffer))
@@ -294,8 +308,11 @@ length is larger than this value it won't be propertized."
   (local-set-key (kbd "u") 'lt-unhighlight)
   (local-set-key (kbd "r") 'lt-restart)
   (local-set-key (kbd "q") 'lt-quit)
+  (local-set-key (kbd "d") 'lt-disconnect)
   (local-set-key (kbd "m") 'lt-measure-region)
-  (toggle-read-only t))
+  (if (functionp 'toggle-read-only)
+      (toggle-read-only t)
+    (read-only-mode t)))
 
 (defun log-tools (backend-name)
   (interactive (list (ido-completing-read "Log backend: "
@@ -311,7 +328,8 @@ length is larger than this value it won't be propertized."
 (defstruct lt-backend
   name
   (init 'ignore)
-  (restart 'ignore))
+  (restart 'ignore)
+  (disconnect 'ignore))
 
 (defun lt-register-backend (backend)
   (add-to-list 'lt-backends backend nil

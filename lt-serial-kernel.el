@@ -35,7 +35,8 @@
 
 (lt-register-backend (make-lt-backend :name "serial-kernel"
 				      :init 'lt-serial-kernel-init
-				      :restart 'lt-serial-start-process))
+				      :restart 'lt-serial-start-process
+				      :disconnect 'lt-serial-disconnect))
 
 (provide 'lt-serial-kernel)
 
