@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 ;;; log-tools.el --- Log Tools
 
 ;; Copyright (C) 2014 2014 Free Software Foundation, Inc.
